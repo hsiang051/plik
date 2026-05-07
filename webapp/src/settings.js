@@ -41,6 +41,15 @@ export const BUILTIN_LANGUAGES = [
 const STORAGE_KEY = 'plik-theme'
 const LANGUAGE_STORAGE_KEY = 'plik-locale'
 
+function normalizeLanguageCode(name) {
+    return typeof name === 'string' ? name.toLowerCase() : name
+}
+
+function findLanguageByName(languages, name) {
+    const normalized = normalizeLanguageCode(name)
+    return languages.find(l => normalizeLanguageCode(l.name) === normalized)
+}
+
 // White-label safe defaults: empty name so "Plik" is never leaked
 // if settings.json is missing or fails to load.
 export const settings = reactive({
@@ -269,7 +278,7 @@ export function getAvailableLanguages() {
                 }
             }
         } else if (typeof entry === 'string') {
-            const builtin = BUILTIN_LANGUAGES.find(l => l.name === entry)
+            const builtin = findLanguageByName(BUILTIN_LANGUAGES, entry)
             result.push(builtin || { name: entry, label: entry })
         } else {
             result.push({ name: entry.name, label: entry.label || entry.name, flag: entry.flag })
@@ -283,12 +292,17 @@ export function getAvailableLanguages() {
  * Returns the best matching supported locale, or 'en' as fallback.
  */
 export function resolveAutoLanguage() {
-    const lang = navigator.language?.split('-')[0]
     const available = getAvailableLanguages()
     // Only match against concrete languages (not 'auto')
-    if (lang && available.some(l => l.name === lang)) return lang
+    const exactLang = findLanguageByName(available, navigator.language)
+    if (exactLang && exactLang.name !== 'auto') return exactLang.name
+
+    const lang = navigator.language?.split('-')[0]
+    const baseLang = findLanguageByName(available, lang)
+    if (baseLang && baseLang.name !== 'auto') return baseLang.name
+
     // Fallback: prefer 'en', then first non-auto language
-    if (available.some(l => l.name === 'en')) return 'en'
+    if (findLanguageByName(available, 'en')) return 'en'
     const first = available.find(l => l.name !== 'auto')
     return first ? first.name : 'en'
 }
@@ -302,8 +316,9 @@ export function getUserLanguage() {
 
     try {
         const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-        if (stored && available.some(l => l.name === stored)) {
-            return stored
+        const storedLanguage = findLanguageByName(available, stored)
+        if (storedLanguage) {
+            return storedLanguage.name
         }
         if (stored) {
             localStorage.removeItem(LANGUAGE_STORAGE_KEY)
@@ -313,13 +328,14 @@ export function getUserLanguage() {
     }
 
     // Validate the settings default against available languages
-    if (available.some(l => l.name === settings.language)) {
-        return settings.language
+    const defaultLanguage = findLanguageByName(available, settings.language)
+    if (defaultLanguage) {
+        return defaultLanguage.name
     }
 
     // Neither stored nor default is valid — prefer 'auto', then 'en', then first available
-    if (available.some(l => l.name === 'auto')) return 'auto'
-    if (available.some(l => l.name === 'en')) return 'en'
+    if (findLanguageByName(available, 'auto')) return 'auto'
+    if (findLanguageByName(available, 'en')) return 'en'
     return available.length > 0 ? available[0].name : 'auto'
 }
 
@@ -368,8 +384,9 @@ export async function setUserLanguage(name, { skipSync = false } = {}) {
 export function syncLanguageFromUser(user) {
     if (!user?.language) return
     const available = getAvailableLanguages()
-    if (available.some(l => l.name === user.language)) {
-        setUserLanguage(user.language, { skipSync: true })
+    const language = findLanguageByName(available, user.language)
+    if (language) {
+        setUserLanguage(language.name, { skipSync: true })
     }
 }
 
