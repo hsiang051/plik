@@ -1,0 +1,59 @@
+name: Build zh-tw image
+
+on:
+  push:
+    branches:
+      - feat/i18n-zh-tw
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/plik
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Fetch tags
+        run: git fetch --force --tags
+
+      - name: Compute image metadata
+        id: meta
+        run: |
+          latest_tag="$(git describe --tags --abbrev=0 2>/dev/null || echo dev)"
+          short_sha="$(git rev-parse --short HEAD)"
+          version="${latest_tag}-zh-tw-${short_sha}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:zh-tw
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_NAME }}:zh-tw-${{ steps.meta.outputs.short_sha }}

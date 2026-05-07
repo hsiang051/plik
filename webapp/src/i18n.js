@@ -11,13 +11,14 @@ import pt from './locales/pt.json'
 import ru from './locales/ru.json'
 import sv from './locales/sv.json'
 import zh from './locales/zh.json'
+import zhtw from './locales/zh-tw.json'
 
 const i18n = createI18n({
     legacy: false,          // use Composition API
     globalInjection: true,  // ensure $t is available in all templates
     locale: 'en',           // default; overridden by loadSettings() before mount
     fallbackLocale: 'en',
-    messages: { de, en, es, fr, hi, it, nl, pl, pt, ru, sv, zh },
+    messages: { de, en, es, fr, hi, it, nl, pl, pt, ru, sv, zh, 'zh-tw': zhtw },
 })
 
 /**

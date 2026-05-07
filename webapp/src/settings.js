@@ -35,6 +35,7 @@ export const BUILTIN_LANGUAGES = [
     { name: 'ru', label: 'Русский', flag: 'flags/ru.svg' },
     { name: 'sv', label: 'Svenska', flag: 'flags/sv.svg' },
     { name: 'zh', label: '中文', flag: 'flags/zh.svg' },
+    { name: 'zh-tw', label: '中文（臺灣）', flag: 'flags/zh-tw.svg' },
 ]
 
 const STORAGE_KEY = 'plik-theme'
